@@ -15,7 +15,6 @@
   <modules>
     <module>security</module>
     <module>image</module>
-    <module>security</module>
   </modules>
 
   <properties>
@@ -46,7 +45,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.1</version>
+          <version>3.3.0</version>
         </plugin>
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
@@ -72,4 +71,14 @@
       </plugins>
     </pluginManagement>
   </build>
+  
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>4.8.6.0</version>
+      </plugin>
+    </plugins>
+  </reporting>
 </project>

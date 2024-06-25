@@ -28,9 +28,8 @@ import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.Mockito.*;
 
 /**
- * This class contains unit tests for the SecurityService class.
- * It uses Mockito framework for mocking dependencies and verifying
- * interactions.
+ * Test Service for the SecurityService class.
+ * and use  Mockito framework for mocking dependencies and verifying behavior
  */
 @ExtendWith(MockitoExtension.class)
 public class SecurityServiceTest {
