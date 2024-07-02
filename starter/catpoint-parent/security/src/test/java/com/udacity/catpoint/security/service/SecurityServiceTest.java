@@ -21,6 +21,7 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
@@ -62,10 +63,11 @@ public class SecurityServiceTest {
 		listSensor.add(new Sensor("Sensor-03", SensorType.WINDOW));
 	}
 
-	@Test
+	@ParameterizedTest(name = "Test case  using arming status: {0}")
+	@EnumSource(value = ArmingStatus.class, names = { "ARMED_AWAY", "ARMED_HOME" })
 	@DisplayName("1. If alarm is armed and a sensor becomes activated, put the system into pending alarm status.")
-	void alarmIsArmed_sensorActivated_returnPendingAlarmStatus() {
-		when(securityService.getArmingStatus()).thenReturn(ArmingStatus.ARMED_AWAY);
+	void alarmIsArmed_sensorActivated_returnPendingAlarmStatus(ArmingStatus armingStatus) {
+		when(securityService.getArmingStatus()).thenReturn(armingStatus);
 		when(securityService.getAlarmStatus()).thenReturn(AlarmStatus.NO_ALARM);
 		securityService.changeSensorActivationStatus(sensor, true);
 		verify(securityRepository).updateSensor(any(Sensor.class));
@@ -165,4 +167,84 @@ public class SecurityServiceTest {
 		verify(securityRepository).setAlarmStatus(AlarmStatus.NO_ALARM);
 	}
 
+	@Test
+	@DisplayName("9. If the system is disarmed, set the status to no alarm.")
+	public void systemDisarmed_verifyStatusChangeToNoAlarm() {
+		securityService.setArmingStatus(ArmingStatus.DISARMED);
+		verify(securityRepository).setAlarmStatus(AlarmStatus.NO_ALARM);
+	}
+
+	@ParameterizedTest(name = "Test case  using arming status: {0}")
+	@EnumSource(value = ArmingStatus.class, names = { "ARMED_AWAY", "ARMED_HOME" })
+	@DisplayName("10. If the system is armed, reset all sensors to inactive.")
+	public void systemArmed_resetAllSensorsInactive(ArmingStatus armingStatus) {
+		when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
+		when(securityRepository.getSensors()).thenReturn(listSensor);
+		securityService.setArmingStatus(armingStatus);
+		securityService.getSensors().forEach(sensor -> assertEquals(false, sensor.getActive()));
+	}
+
+	@Test
+	@DisplayName("11. If the system is armed-home while the camera shows a cat, set the alarm status to alarm.")
+	public void systemIsArmedHome_cameraShowCat_veriyChangeAlarmStatusToAlarm() {
+		when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
+		when(imageService.imageContainsCat(any(BufferedImage.class), anyFloat())).thenReturn(true);
+
+		securityService.processImage(mock(BufferedImage.class));
+
+		verify(securityRepository).setAlarmStatus(AlarmStatus.ALARM);
+	}
+	
+	
+	
+	@ParameterizedTest(name = "Test case  using arming status: {0}")
+    @EnumSource(value = AlarmStatus.class, names = { "NO_ALARM", "PENDING_ALARM" })
+	@DisplayName("12. If the system is disarmed and sensor is activated , make no changes to the alarm state..")
+	public void systemIsDisarmed_sensorActivated_veriyNoChangesToArmingState(AlarmStatus status) {
+       
+        when(securityRepository.getAlarmStatus()).thenReturn(status);
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
+        securityService.changeSensorActivationStatus(sensor, true);
+
+        verify(securityRepository, never()).setArmingStatus(ArmingStatus.DISARMED);
+    }
+
+//    /**
+//     * Test case to verify that if the alarm state is DISARMED and the system is in
+//     * ALARM state,
+//     * the status should be changed to PENDING_ALARM after changing the sensor
+//     * activation status.
+//     */
+    @Test
+    void changeStatusToPending_WhenAlarmStateAndSystemDisarmed() {
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.ALARM);
+        securityService.changeSensorActivationStatus(sensor);
+
+        verify(securityRepository).setAlarmStatus(AlarmStatus.PENDING_ALARM);
+    }
+
+    @Test
+    void changeStatusToPending_WhenAlarmStateAndSystemDisarmed1() {
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
+        Sensor sensor1 = new Sensor("Sensor-04", SensorType.DOOR);
+		sensor1.setActive(false);
+        securityService.changeSensorActivationStatus(sensor1);
+
+        verify(securityRepository).setAlarmStatus(AlarmStatus.NO_ALARM);
+    }
+    /**
+     * Test case to verify that no exception is thrown when adding, getting, and removing sensors.
+     */
+    @Test
+    public void notThrowException_WhenaddGetRemoveSensors() {
+        assertDoesNotThrow(() -> {
+            for (final Sensor sensor : listSensor) {
+                securityService.addSensor(sensor);
+                securityService.getSensors();
+                securityService.removeSensor(sensor);
+            }
+        });
+    }
 }
