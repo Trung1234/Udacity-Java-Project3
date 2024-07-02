@@ -149,6 +149,7 @@ public class SecurityServiceTest {
 		when(imageService.imageContainsCat(any(BufferedImage.class), anyFloat())).thenReturn(true);
 		// while the system is armed-home,
 		when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_HOME);
+		
 		securityService.processImage(mock(BufferedImage.class));
 
 		verify(securityRepository).setAlarmStatus(AlarmStatus.ALARM);
@@ -159,6 +160,7 @@ public class SecurityServiceTest {
 	public void imageService_identifyImage_notContainsCat_sensorAreNotActive_verifyChangeToNoAlarmStatus() {
 		// as long as the sensors are not active.
 		listSensor.forEach(sensor -> sensor.setActive(false));
+		when(securityRepository.getSensors()).thenReturn(listSensor);
 		// Image service identifies an image NOT containing a cat
 		when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(false);
 
