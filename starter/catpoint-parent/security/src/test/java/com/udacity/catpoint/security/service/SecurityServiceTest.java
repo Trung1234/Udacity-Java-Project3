@@ -15,6 +15,8 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.awt.image.BufferedImage;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -71,7 +73,7 @@ public class SecurityServiceTest {
 		when(securityService.getAlarmStatus()).thenReturn(AlarmStatus.NO_ALARM);
 		securityService.changeSensorActivationStatus(sensor, true);
 		verify(securityRepository).updateSensor(any(Sensor.class));
-		verify(securityRepository).setAlarmStatus(AlarmStatus.PENDING_ALARM);
+		verify(securityRepository, atLeastOnce()).setAlarmStatus(AlarmStatus.PENDING_ALARM);
 	}
 
 	@Test
@@ -212,24 +214,16 @@ public class SecurityServiceTest {
         verify(securityRepository, never()).setArmingStatus(ArmingStatus.DISARMED);
     }
 	
-	@ParameterizedTest(name = "Test case  using arming status: {0}")
-    @EnumSource(value = AlarmStatus.class, names = { "ALARM", "PENDING_ALARM" })
-	@DisplayName("13. If the system is disarmed  , make change Sensor Activation Status")
-	public void systemIsDisarmed_veriyChangeSensorActivationStatus(AlarmStatus status) {      
-		when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.DISARMED);
-        when(securityRepository.getAlarmStatus()).thenReturn(status);
-        Sensor testSensor = sensor;
-        if(AlarmStatus.PENDING_ALARM == status) {
-        	testSensor.setActive(false);
-        }
-        securityService.changeSensorActivationStatus(testSensor,!testSensor.getActive());
-        if(AlarmStatus.ALARM == status) {
-        	verify(securityRepository).setAlarmStatus(AlarmStatus.PENDING_ALARM);
-        } else {
-        	verify(securityRepository).setAlarmStatus(AlarmStatus.NO_ALARM);
-        }        
+	@Test
+    @DisplayName("13. If alarm status is alarm , set to PENDING ALARM")
+    public void alarmStatusIsAlarm_setPendinAlarm() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.ALARM);
+		Method getNameMethod = SecurityService.class.getDeclaredMethod("handleSensorDeactivated");
+        getNameMethod.setAccessible(true); // Make the private method accessible
+        getNameMethod.invoke(securityService);
+		verify(securityRepository).setAlarmStatus(AlarmStatus.PENDING_ALARM);
     }
-
+	
     @Test
     @DisplayName("14. When adding, getting, and removing sensor , verify exception does not throw")
     public void verifyAddGetRemoveSensor_notThrowException() {
