@@ -222,7 +222,7 @@ public class SecurityServiceTest {
         if(AlarmStatus.PENDING_ALARM == status) {
         	testSensor.setActive(false);
         }
-        securityService.changeSensorActivationStatus(testSensor);
+        securityService.changeSensorActivationStatus(testSensor,!testSensor.getActive());
         if(AlarmStatus.ALARM == status) {
         	verify(securityRepository).setAlarmStatus(AlarmStatus.PENDING_ALARM);
         } else {
